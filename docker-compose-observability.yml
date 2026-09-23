@@ -1,0 +1,43 @@
+services:
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+
+    ports:
+      - "3000:3000"
+
+    environment:
+
+      # -----------------------------
+      # Grafana SMTP / Gmail
+      # -----------------------------
+
+      GF_SMTP_ENABLED: "true"
+      GF_SMTP_HOST: "smtp.gmail.com:587"
+
+      GF_SMTP_USER: "${GF_SMTP_USER}"
+      GF_SMTP_PASSWORD: "${GF_SMTP_PASSWORD}"
+
+      GF_SMTP_FROM_ADDRESS: "${GF_SMTP_FROM_ADDRESS}"
+      GF_SMTP_FROM_NAME: "${GF_SMTP_FROM_NAME}"
+
+      GF_SMTP_SKIP_VERIFY: "false"
+      GF_SMTP_EHLO_IDENTITY: "localhost"
+
+    volumes:
+      - grafana-data:/var/lib/grafana
+
+    restart: unless-stopped
+
+
+volumes:
+  grafana-data:
+    external: true
+
+
+networks:
+  default:
+
+  observability-network:
+    external: true
