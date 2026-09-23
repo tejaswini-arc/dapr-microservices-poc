@@ -1,5 +1,32 @@
 services:
 
+  # ============================================================
+  # PROMETHEUS
+  # ============================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+
+    ports:
+      - "9095:9090"
+
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+
+    restart: unless-stopped
+
+    networks:
+      - observability-network
+
+
+  # ============================================================
+  # GRAFANA
+  # ============================================================
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -30,14 +57,30 @@ services:
 
     restart: unless-stopped
 
+    depends_on:
+      - prometheus
+
+    networks:
+      - observability-network
+
+
+# ==============================================================
+# VOLUMES
+# ==============================================================
 
 volumes:
+
+  prometheus-data:
+
   grafana-data:
     external: true
 
 
+# ==============================================================
+# NETWORK
+# ==============================================================
+
 networks:
-  default:
 
   observability-network:
     external: true

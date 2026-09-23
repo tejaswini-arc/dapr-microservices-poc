@@ -24,12 +24,6 @@ public class OrderController {
 
 
 
-    /*// Dapr → Order Service  Dapr calls this endpoint when ticket.booked is consumed from Kafka.
-      @PostMapping("/events/book-ticket")
-    public ResponseEntity<Void> handleTicketBookedEvent(@RequestBody TicketBookedEvent event) {
-        orderService.processTicketBookedEvent(event);
-        return ResponseEntity.ok().build();
-    }*/
 
      // Get booking status.
      @GetMapping("/{orderId}")

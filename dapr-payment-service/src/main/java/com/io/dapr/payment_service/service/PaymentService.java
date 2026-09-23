@@ -25,260 +25,87 @@ public class PaymentService {
         this.restClient = restClient;
     }
 
-
-
-
-    public String sendNotification() {
-        log.info("Calling Notification Service through Dapr...");
-        return restClient.post()
-                .uri("/v1.0/invoke/notification-service/method/api/notifications")
-                .retrieve()
-                .body(String.class);
-    }
-
-    /**
-     * Processes book.ticket CloudEvent received through Dapr Pub/Sub.
-     */
+        // Processes book.ticket event received through Dapr Pub/Sub.
     public PaymentResponse processBookTicketEvent(String rawPayload) {
-
-        log.info("=================================================");
         log.info("BOOK.TICKET EVENT RECEIVED BY PAYMENT SERVICE");
-        log.info("=================================================");
-
         log.info("Raw payload received: {}", rawPayload);
-
         try {
-
-            // =========================================================
             // 1. Read Dapr CloudEvent envelope
-            // =========================================================
-
-            JsonNode cloudEventNode =
-                    objectMapper.readTree(rawPayload);
-
-
-            // =========================================================
-            // 2. Extract actual business payload from "data"
-            // =========================================================
-
-            JsonNode dataNode =
-                    cloudEventNode.get("data");
-
+            JsonNode cloudEventNode = objectMapper.readTree(rawPayload);
+            // 2. Extract actual payload from "data"
+            JsonNode dataNode = cloudEventNode.get("data");
             if (dataNode == null) {
-
-                throw new IllegalArgumentException(
-                        "CloudEvent does not contain 'data'"
-                );
+                throw new IllegalArgumentException("CloudEvent does not contain 'data'");
             }
-
-
-            // =========================================================
             // 3. Convert "data" into BookTicketEvent
-            // =========================================================
-
-            BookTicketEvent event =
-                    objectMapper.treeToValue(
-                            dataNode,
-                            BookTicketEvent.class
-                    );
-
-
-            // =========================================================
+            BookTicketEvent eventData =objectMapper.treeToValue(dataNode,BookTicketEvent.class);
             // 4. Log booking information
-            // =========================================================
-
             log.info("Parsed book.ticket event:");
+            log.info("Order ID : {}", eventData.getOrderId());
+            log.info("Customer : {}", eventData.getCustomerName());
+            log.info("Email    : {}", eventData.getCustomerEmail());
+            log.info("Item     : {}", eventData.getItemName());
+            log.info("Seat     : {}", eventData.getSeatNumber());
+            log.info("Amount   : {}", eventData.getAmount());
 
-            log.info("Order ID : {}", event.getOrderId());
-            log.info("Customer : {}", event.getCustomerName());
-            log.info("Email    : {}", event.getCustomerEmail());
-            log.info("Item     : {}", event.getItemName());
-            log.info("Seat     : {}", event.getSeatNumber());
-            log.info("Amount   : {}", event.getAmount());
-
-
-            // =========================================================
             // 5. Process payment
-            // =========================================================
-
-            log.info(
-                    "Payment processing started for orderId={}",
-                    event.getOrderId()
-            );
-
-            String transactionId =
-                    "TXN-" +
-                            UUID.randomUUID()
-                                    .toString()
-                                    .substring(0, 8)
-                                    .toUpperCase();
-
+            log.info("Payment processing started for orderId={}",eventData.getOrderId());
+            String transactionId ="TXN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
             String paymentStatus = "PAYMENT_SUCCESS";
-
-
-            log.info(
-                    "Payment processing completed for orderId={}",
-                    event.getOrderId()
-            );
-
+            log.info("Payment processing completed for orderId={}",eventData.getOrderId());
             log.info("Transaction ID : {}", transactionId);
             log.info("Payment Status : {}", paymentStatus);
 
-
-            // =========================================================
             // 6. Create PaymentResponse
-            // =========================================================
+            PaymentResponse paymentResponse = new PaymentResponse(eventData.getOrderId(),transactionId,paymentStatus);
 
-            PaymentResponse paymentResponse =
-                    new PaymentResponse(
-                            event.getOrderId(),
-                            transactionId,
-                            paymentStatus
-                    );
-
-
-            // =========================================================
-            // 7. ONLY AFTER PAYMENT SUCCESS
-            //    invoke Notification Service
-            // =========================================================
+            // 7. AFTER PAYMENT invoke Notification Service
 
             if ("PAYMENT_SUCCESS".equals(paymentStatus)) {
-
-                log.info(
-                        "Payment successful. Invoking Notification Service for orderId={}",
-                        event.getOrderId()
-                );
-
-                sendPaymentConfirmation(
-                        event,
-                        paymentResponse
-                );
+                log.info("Payment successful. Invoking Notification Service for orderId={}",eventData.getOrderId());
+                sendPaymentConfirmation(eventData,paymentResponse);
             }
-
-
-            // =========================================================
             // 8. Return payment response
-            // =========================================================
-
             return paymentResponse;
-
         } catch (Exception e) {
-
-            log.error(
-                    "Failed to process book.ticket event",
-                    e
-            );
-
-            throw new RuntimeException(
-                    "Payment processing failed",
-                    e
-            );
+            log.error( "Failed to process book.ticket event",e);
+            throw new RuntimeException("Payment processing failed",e);
         }
     }
 
 
-    /**
-     * Invokes Notification Service using
-     * Dapr Service Invocation.
-     *
-     * Flow:
-     *
-     * Payment Service
-     *       |
-     *       | HTTP request
-     *       v
-     * Payment Dapr Sidecar
-     *       |
-     *       | Dapr Service Invocation
-     *       v
-     * Notification Dapr Sidecar
-     *       |
-     *       v
-     * Notification Service
-     */
-    private void sendPaymentConfirmation(
-            BookTicketEvent event,
-            PaymentResponse paymentResponse) {
 
+    private void sendPaymentConfirmation(BookTicketEvent eventData,PaymentResponse paymentResponse) {
         try {
-
-            // =========================================================
             // 1. Build notification request
-            // =========================================================
-
-            NotificationRequest notificationRequest =
-                    new NotificationRequest(
-
-                            // Booking information
-                            event.getOrderId(),
-                            event.getCustomerName(),
-                            event.getCustomerEmail(),
-                            event.getItemName(),
-                            event.getSeatNumber(),
-                            event.getAmount(),
-
+                        NotificationRequest notificationRequest = new NotificationRequest(
+                            eventData.getOrderId(),
+                            eventData.getCustomerName(),
+                            eventData.getCustomerEmail(),
+                            eventData.getItemName(),
+                            eventData.getSeatNumber(),
+                            eventData.getAmount(),
                             // Payment information
                             paymentResponse.getTransactionId(),
                             paymentResponse.getStatus()
                     );
-
-
-            // =========================================================
-            // 2. Log EXACT request being sent
-            // =========================================================
+            // 2. Log EXACT request being sent to notification-service
 
             log.info("=================================================");
             log.info("PAYMENT -> NOTIFICATION SERVICE");
             log.info("=================================================");
-
-            log.info(
-                    "Order ID       : {}",
-                    notificationRequest.getOrderId()
-            );
-
-            log.info(
-                    "Customer       : {}",
-                    notificationRequest.getCustomerName()
-            );
-
-            log.info(
-                    "Email          : {}",
-                    notificationRequest.getCustomerEmail()
-            );
-
-            log.info(
-                    "Item           : {}",
-                    notificationRequest.getItemName()
-            );
-
-            log.info(
-                    "Seat           : {}",
-                    notificationRequest.getSeatNumber()
-            );
-
-            log.info(
-                    "Amount         : {}",
-                    notificationRequest.getAmount()
-            );
-
-            log.info(
-                    "Transaction ID : {}",
-                    notificationRequest.getTransactionId()
-            );
-
-            log.info(
-                    "Payment Status : {}",
-                    notificationRequest.getPaymentStatus()
-            );
+            log.info("Order ID       : {}",notificationRequest.getOrderId());
+            log.info("Customer       : {}",notificationRequest.getCustomerName());
+            log.info("Email          : {}",notificationRequest.getCustomerEmail());
+            log.info("Item           : {}",notificationRequest.getItemName());
+            log.info("Seat           : {}",notificationRequest.getSeatNumber());
+            log.info("Amount         : {}",notificationRequest.getAmount());
+            log.info( "Transaction ID : {}",notificationRequest.getTransactionId());
+            log.info("Payment Status : {}", notificationRequest.getPaymentStatus());
 
 
-            // =========================================================
             // 3. Invoke Notification Service through Dapr
-            // =========================================================
-
-            String response =
-                    restClient.post()
-                            .uri(
+            String response =restClient.post().uri(
                                     "/v1.0/invoke/" +
                                             "notification-service" +
                                             "/method/api/notifications"
@@ -287,103 +114,15 @@ public class PaymentService {
                             .retrieve()
                             .body(String.class);
 
-
-            // =========================================================
             // 4. Log successful response
-            // =========================================================
-
-            log.info(
-                    "Notification Service invoked successfully"
-            );
-
-            log.info(
-                    "Notification Service response: {}",
-                    response
-            );
-
+            log.info("Notification Service invoked successfully");
+            log.info("Notification Service response: {}",response);
             log.info("=================================================");
 
         } catch (Exception e) {
-
-            log.error(
-                    "Failed to invoke Notification Service for orderId={}",
-                    event.getOrderId(),
-                    e
-            );
+            log.error("Failed to invoke Notification Service for orderId={}",eventData.getOrderId(),e);
         }
     }
 
 
-    /**
-     * Process payment for a ticket.
-     *
-     * This method is kept separately for direct payment
-     * processing/testing.
-     */
-    public PaymentResponse processPayment(
-            BookTicketEvent event) {
-
-        log.info("========================================");
-        log.info("Received book.ticket event");
-        log.info(
-                "Order ID: {}",
-                event.getOrderId()
-        );
-        log.info(
-                "Customer: {}",
-                event.getCustomerName()
-        );
-        log.info(
-                "Movie/Route: {}",
-                event.getItemName()
-        );
-        log.info(
-                "Seat: {}",
-                event.getSeatNumber()
-        );
-        log.info(
-                "Amount: ₹{}",
-                event.getAmount()
-        );
-        log.info("========================================");
-
-
-        log.info("Processing payment...");
-
-
-        String transactionId =
-                "TXN-" +
-                        UUID.randomUUID()
-                                .toString()
-                                .substring(0, 8)
-                                .toUpperCase();
-
-
-        // Simulate successful payment
-        String status = "PAYMENT_SUCCESS";
-
-
-        log.info("========================================");
-        log.info("Payment completed");
-        log.info(
-                "Order ID: {}",
-                event.getOrderId()
-        );
-        log.info(
-                "Transaction ID: {}",
-                transactionId
-        );
-        log.info(
-                "Status: {}",
-                status
-        );
-        log.info("========================================");
-
-
-        return new PaymentResponse(
-                event.getOrderId(),
-                transactionId,
-                status
-        );
-    }
 }

@@ -18,32 +18,12 @@ public class PaymentController {
     private static final Logger log =LoggerFactory.getLogger(PaymentController.class);
     private final PaymentService paymentService;
 
-    public PaymentController(
-            PaymentService notificationService) {
-        this.paymentService = notificationService;
+    public PaymentController(PaymentService paymentService) {
+        this.paymentService = paymentService;
     }
 
-    @PostMapping
-    public String makePayment() {
-
-        System.out.println("Payment received");
-        String notificationResponse = paymentService.sendNotification();
-        System.out.println("Notification response: " + notificationResponse);
-        return "Payment processed successfully. "
-                + notificationResponse;
-    }
-
-    /*
-     * Dapr calls this endpoint when
-     * book.ticket is received from Kafka.
-     *
-     * Kafka
-     *   ↓
-     * Payment Dapr
-     *   ↓
-     * POST /api/payments/events/book-ticket
-     */
-    @PostMapping("/events/book-ticket")
+   // Dapr calls this endpoint when book.ticket is received from Kafka.
+     @PostMapping("/events/book-ticket")
     public ResponseEntity<String> receiveBookTicket(@RequestBody String payload) {
         log.info("Received book.ticket event from Dapr");
         paymentService.processBookTicketEvent(payload);

@@ -47,12 +47,10 @@ public class OrderService {
         order.setCustomerEmail(request.getCustomerEmail());
         orders.put(orderId,order); //Store order.
 
-         // Build business event.
-        BookTicketEvent event = new BookTicketEvent(TOPIC_NAME,orderId,request.getTicketType(),
-                        request.getItemName(),request.getSeatNumber(),request.getAmount(),request.getCustomerName(),request.getCustomerEmail());
-
+         // Build the event.
+        BookTicketEvent event = new BookTicketEvent(TOPIC_NAME,orderId,request.getTicketType(),request.getItemName(),request.getSeatNumber(),request.getAmount(),request.getCustomerName(),request.getCustomerEmail());
          //Publish event to Kafka through Dapr Pub/Sub.
-      publishTicketBookedEvent(event);
+         publishTicketBookedEvent(event);
 
         //Return order to browser.
         return order;
@@ -80,21 +78,5 @@ public class OrderService {
         return orders.get(orderId);
     }
 
-    /*//  This method will be called by Dapr when Kafka sends ticket booked back to the Order Service.
 
-    public void processTicketBookedEvent(TicketBookedEvent event) {
-        System.out.println( "========================================");
-        System.out.println("Received ticket.booked event");
-        System.out.println("Order ID: " + event.getOrderId());
-        System.out.println("Customer: "+ event.getCustomerName());
-        System.out.println("Movie/Route: " + event.getItemName());
-        System.out.println("Seat: " + event.getSeatNumber());
-        System.out.println("Amount: ₹"+ event.getAmount());
-        System.out.println("========================================");
-
-
-        *//*
-         * For now we only demonstrate that the event was received.Payment processing will be added in the next stage.
-         *//*
-    }*/
 }
