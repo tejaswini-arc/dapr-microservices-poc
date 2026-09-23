@@ -1,9 +1,12 @@
 package com.io.dapr.notification_service.controller;
 
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import com.io.dapr.notification_service.model.NotificationRequest;
+import com.io.dapr.notification_service.model.PaymentNotificationRequest;
+import com.io.dapr.notification_service.service.NotificationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -20,11 +23,69 @@ POST /api/notifications?fail=true                      //The service throws an e
  */
 
 @RestController
-@RequestMapping("/api/notifications")
+@RequestMapping("/api")
 public class NotificationController {
 
+    private static final Logger log =  LoggerFactory.getLogger(NotificationController.class);
 
-        /** This counter keeps track of how many times the notification endpoint has been called during the transient-failure experiment.
+
+    private final NotificationService notificationService;
+
+    public NotificationController(NotificationService notificationService) {
+        this.notificationService = notificationService;
+    }
+
+  /*  @PostMapping
+    public ResponseEntity<String> sendNotification(@RequestBody PaymentNotificationRequest request) {
+        log.info("Notification API called for orderId={}",request.getOrderId());
+        String response =  notificationService.sendNotification(request);
+        return ResponseEntity.ok(response);
+    }*/
+
+   /* @PostMapping("/notifications")
+    public ResponseEntity<String> sendNotification(@RequestBody NotificationRequest request) {
+        log.info("=================================================");
+        log.info("PAYMENT CONFIRMATION RECEIVED");
+        log.info("=================================================");
+        log.info("Order ID       : {}", request.getOrderId());
+        log.info("Customer       : {}", request.getCustomerName());
+        log.info("Email          : {}", request.getCustomerEmail());
+        log.info("Item           : {}", request.getItemName());
+        log.info("Seat           : {}", request.getSeatNumber());
+        log.info("Amount         : ₹{}", request.getAmount());
+        log.info("Transaction ID : {}", request.getTransactionId());
+        log.info("Payment Status : {}", request.getPaymentStatus());
+
+        // For now this represents the email notification.
+        // Later we can replace this with Gmail/SMTP/SES/etc.
+
+        log.info("Sending order confirmation email to {}",request.getCustomerEmail());
+        log.info("Order confirmation email sent successfully for orderId={}",request.getOrderId());
+        return ResponseEntity.ok("Order confirmation notification sent successfully for order "+ request.getOrderId());
+    }*/
+
+
+    @PostMapping("/notifications")
+    public ResponseEntity<String> sendNotification(@RequestBody PaymentNotificationRequest request) {
+        String response =notificationService.sendBookingConfirmation(request);
+        return ResponseEntity.ok(response);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    /** This counter keeps track of how many times the notification endpoint has been called during the transient-failure experiment.
          ** Why do we need it?
          ** We want to demonstrate:
          *     Attempt 1 -> FAIL
@@ -62,8 +123,8 @@ public class NotificationController {
                  *
                  * If it is not supplied, it defaults to false.
          */
-        @PostMapping
-        public String sendNotification(@RequestParam(defaultValue = "0") long delay,@RequestParam(defaultValue = "false") boolean fail, @RequestParam(defaultValue = "false") boolean transientFailure) {
+        @PostMapping("/notifications/test")
+        public String sendNotificationold(@RequestParam(defaultValue = "0") long delay,@RequestParam(defaultValue = "false") boolean fail, @RequestParam(defaultValue = "false") boolean transientFailure) {
 
             System.out.println("Notification service received request");
 
@@ -140,8 +201,11 @@ public class NotificationController {
                 System.out.println("Transient failure recovered on attempt: "+ attempt);
                 return "Notification sent successfully on attempt "+ attempt;
             }
-
             return "Notification sent successfully";
         }
+
+
+
+
     }
 

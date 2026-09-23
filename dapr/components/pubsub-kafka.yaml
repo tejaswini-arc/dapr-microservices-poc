@@ -1,0 +1,28 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+
+metadata:
+  name: pubsub-kafka
+  namespace: default
+
+spec:
+  type: pubsub.kafka
+  version: v1
+
+  metadata:
+
+    # Kafka broker address
+    - name: brokers
+      value: "localhost:9092"
+
+    # Consumer group used by Dapr
+    - name: consumerGroup
+      value: "ticket-booking-group"
+
+    # No authentication for local POC
+    - name: authType
+      value: "none"
+
+    # Disable TLS for local Kafka
+    - name: disableTls
+      value: "true"

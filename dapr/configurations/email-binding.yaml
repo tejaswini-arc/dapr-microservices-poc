@@ -1,0 +1,26 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: email-binding
+spec:
+  type: bindings.smtp
+  version: v1
+  metadata:
+    - name: host
+      value: "smtp.gmail.com"
+    - name: port
+      value: "587"
+    - name: user
+      value: "tejaswiini.pawar01@gmail.com"
+    - name: password
+      value: "vbedfdoeknfzhcbe"
+    - name: skipTLSVerify
+      value: true|false
+    - name: emailFrom
+      value: "tejaswiini.pawar01@gmail.com"
+    - name: emailTo
+      value: "tejaswiini.pawar01@gmail.com"
+    - name: subject
+      value: "Booking Confirmation - "
+    - name: priority
+      value: "1"

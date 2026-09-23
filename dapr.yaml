@@ -1,28 +1,71 @@
 version: 1
 
-common:
-  resourcesPath: ./dapr/components
-
 apps:
 
+  # ============================================================
+  # NOTIFICATION SERVICE
+  # ============================================================
   - appID: notification-service
-    appDirPath: ./dapr-notification-service
+    appDirPath: ./dapr-notification-service/
+
     appPort: 8082
     daprHTTPPort: 3500
     metricsPort: 9190
-    configFilePath: ../dapr/configurations/observability.yaml
+
+    # Load shared configurations + Dapr components
+    resourcesPaths:
+      - ../dapr/configurations
+      - ../dapr/components
+
+    configFilePath: ../dapr/configurations/config.yaml
+
     command:
       - java
       - -jar
       - target/dapr-notification-service-0.0.1-SNAPSHOT.jar
 
+
+  # ============================================================
+  # PAYMENT SERVICE
+  # ============================================================
   - appID: payment-service
-    appDirPath: ./dapr-payment-service
+    appDirPath: ./dapr-payment-service/
+
     appPort: 8081
     daprHTTPPort: 3501
     metricsPort: 9191
-    configFilePath: ../dapr/configurations/observability.yaml
+
+    # Load shared configurations + Dapr components
+    resourcesPaths:
+      - ../dapr/configurations
+      - ../dapr/components
+
+    configFilePath: ../dapr/configurations/config.yaml
+
     command:
       - java
       - -jar
       - target/dapr-payment-service-0.0.1-SNAPSHOT.jar
+
+
+  # ============================================================
+  # ORDER SERVICE
+  # ============================================================
+  - appID: order-service
+    appDirPath: ./dapr-order-service/
+
+    appPort: 8080
+    daprHTTPPort: 3502
+    metricsPort: 9192
+
+    # Load shared configurations + Dapr components
+    resourcesPaths:
+      - ../dapr/configurations
+      - ../dapr/components
+
+    configFilePath: ../dapr/configurations/config.yaml
+
+    command:
+      - java
+      - -jar
+      - target/order-service-0.0.1-SNAPSHOT.jar

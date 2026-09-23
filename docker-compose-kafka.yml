@@ -1,0 +1,93 @@
+services:
+
+  # ============================================================
+  # ZooKeeper
+  # ============================================================
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+
+    ports:
+      - "2181:2181"
+
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-log:/var/lib/zookeeper/log
+      - zookeeper-secrets:/etc/zookeeper/secrets
+
+    restart: unless-stopped
+
+
+  # ============================================================
+  # Kafka
+  # ============================================================
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+
+    depends_on:
+      - zookeeper
+
+    ports:
+      - "9092:9092"
+
+    environment:
+
+      # Kafka broker ID
+      KAFKA_BROKER_ID: 1
+
+      # ZooKeeper
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+      # Two listeners:
+      # INTERNAL -> Docker containers
+      # EXTERNAL -> Windows/Dapr
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
+
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+
+      # Single Kafka broker
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+      # We will explicitly create our application topics
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+      - kafka-secrets:/etc/kafka/secrets
+
+    restart: unless-stopped
+
+
+# ================================================================
+# REUSE EXISTING DOCKER VOLUMES
+# ================================================================
+volumes:
+
+  kafka-data:
+    external: true  #"Docker Compose, use this exact volume that already exists."
+    name: cc2b8b051efcf1e55c563a2a6cb8a16c088d65d5e192a7c9806409523ee40148
+
+  kafka-secrets:
+    external: true
+    name: 8c88b6cad437e3c6e3b8a348c58c4afcef5caf6d58ad682312c5d795461952c4
+
+  zookeeper-data:
+    external: true
+    name: ebf5ce7a5022d7e8e1ee2e3b1a070e023b6ee8672314722c4fe79afcd73db683
+
+  zookeeper-log:
+    external: true
+    name: edf958df3d387e19fe590d6fff09746e3ee54d7fecb4855af41e2868f3f66b61
+
+  zookeeper-secrets:
+    external: true
+    name: 6b289ffcb594e1428a3dae90cfcd8cc00ef7ffd8dcca1fdba923887406dbc5ea
