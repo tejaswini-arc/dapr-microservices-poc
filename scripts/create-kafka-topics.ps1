@@ -5,8 +5,7 @@
 $KafkaContainer = "kafka"
 
 $Topics = @(
-    "book.ticket",
-    "payment.success"
+    "book.ticket"
 )
 
 Write-Host ""
